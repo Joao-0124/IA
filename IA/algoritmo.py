@@ -115,7 +115,7 @@ class Graph:
                     }
 
                 for neighbor in reversed(self.adj_list.get(node, [])):
-                    if neighbor not in visited:
+                    if neighbor not in visited and neighbor not in parent:
                         parent[neighbor] = node
                         stack.append(neighbor)
 
@@ -176,7 +176,7 @@ class Graph:
                     break
 
                 for neighbor in reversed(self.adj_list.get(node, [])):
-                    if neighbor not in visited:
+                    if neighbor not in visited and neighbor not in parent:
                         parent[neighbor] = node
                         stack.append(neighbor)
 
