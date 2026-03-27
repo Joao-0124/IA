@@ -16,10 +16,12 @@ class Graph:
     def __init__(self) -> None:
         self.adj_list: dict[str, list[str]] = {}
         self.cities: dict[str, tuple[float, float]] = {}  # name -> (lat, lon)
+        self.city_states: dict[str, str] = {}  # name -> state (UF)
 
-    def add_city(self, name: str, lat: float, lon: float) -> None:
+    def add_city(self, name: str, lat: float, lon: float, state: str = "") -> None:
         """Add a city to the graph."""
         self.cities[name] = (lat, lon)
+        self.city_states[name] = state
         if name not in self.adj_list:
             self.adj_list[name] = []
 
@@ -289,7 +291,8 @@ def load_cities_from_csv(filename: str) -> Graph:
             city = row['cidade']
             lat = float(row['latitude'])
             lon = float(row['longitude'])
-            graph.add_city(city, lat, lon)
+            state = row.get('estado', '')  # Get state if available
+            graph.add_city(city, lat, lon, state)
     
     graph.build_neighbors(max_distance=300)  # Connect cities within 300 km
     return graph

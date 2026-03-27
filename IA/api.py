@@ -42,9 +42,26 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.get("/states")
+def get_states():
+    """Get list of all states with city counts."""
+    states = {}
+    for city, state in graph.city_states.items():
+        if state not in states:
+            states[state] = 0
+        states[state] += 1
+    return {"states": sorted(states.keys()), "counts": states}
+
 @app.get("/cities")
-def get_cities():
-    """Get list of all cities."""
+def get_cities(state: str = None):
+    """Get list of all cities, optionally filtered by state."""
+    if state:
+        cities = [c for c, s in graph.city_states.items() if s == state]
+        return {
+            "cities": sorted(cities),
+            "count": len(cities),
+            "state": state
+        }
     return {
         "cities": sorted(list(graph.cities.keys())),
         "count": len(graph.cities)
@@ -59,11 +76,13 @@ def get_graph():
     
     # Create nodes with coordinates
     for city, (lat, lon) in graph.cities.items():
+        state = graph.city_states.get(city, '')
         nodes.append({
             "id": city,
             "label": city,
             "lat": lat,
-            "lon": lon
+            "lon": lon,
+            "state": state
         })
     
     # Create edges
