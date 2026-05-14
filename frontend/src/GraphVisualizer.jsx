@@ -30,9 +30,10 @@ const GraphVisualizer = ({
     const latRange = latMax - latMin;
     const lonRange = lonMax - lonMin;
 
-    // Canvas virtual: 1200 x 800
+    // Canvas virtual: largura base, altura proporcional à lat/lon para evitar distorção (aspect ratio correto)
     const canvasWidth = 1200;
-    const canvasHeight = 800;
+    const aspectRatio = latRange / lonRange;
+    const canvasHeight = canvasWidth * aspectRatio;
 
     // Converter lat/lon para coordenadas canvas (X, Y)
     // Longitude: da esquerda para direita (Oeste para Leste)
@@ -89,35 +90,41 @@ const GraphVisualizer = ({
           style: {
             'background-color': node => stateColors[node.data('state')] || '#c5d9f1',
             'label': 'data(label)',
-            'text-valign': 'center',
+            'text-valign': 'top',
             'text-halign': 'center',
-            'width': '40px',
-            'height': '40px',
-            'font-size': '9px',
+            'text-margin-y': -2,
+            'width': '6px',
+            'height': '6px',
+            'font-size': '6px', // Tamanho bem menor para não engolir o mapa
+            'min-zoomed-font-size': 12, // Aparece em zoom >= 2.0 (quando 6px * 2.0 = 12)
             'font-weight': 'bold',
-            'border-width': '2px',
+            'border-width': '0.5px',
             'border-color': '#1a1a1a',
             'text-wrap': 'wrap',
-            'color': '#000',
+            'color': '#222',
             'text-overflow-wrap': 'whitespace',
-            'text-background-padding': '2px',
-            'text-background-opacity': 0,
+            'text-background-padding': '1px', // Fundo mais justo e fino
+            'text-background-opacity': 0.75,
+            'text-background-color': '#ffffff',
+            'text-background-shape': 'roundrectangle',
           },
         },
         {
           selector: 'node:hover',
           style: {
-            'width': '50px',
-            'height': '50px',
-            'font-size': '10px',
+            'width': '10px',
+            'height': '10px',
+            'font-size': '10px', // Cresce a fonte para ganhar destaque extra no hover
+            'text-background-opacity': 1,
+            'z-index': 100, // Traz para frente ao passar o mouse
           },
         },
         {
           selector: 'edge',
           style: {
-            'line-color': '#d0d0d0',
-            'width': 1.5,
-            'opacity': 0.4,
+            'line-color': '#b0b0b0',
+            'width': 0.5,
+            'opacity': 0.2,
             'curve-style': 'straight',
             'display': 'element',
           },
@@ -179,22 +186,39 @@ const GraphVisualizer = ({
 
         const step = animationSteps[stepIndex];
 
+        // PAN ANIMADO DA CÂMERA ACOMPANHANDO A BUSCA
+        const targetNode = cy.getElementById(step.current);
+        if (targetNode.length > 0) {
+          cy.animate({
+            center: { eles: targetNode }
+          }, {
+            duration: Math.max(animationSpeed * 0.8, 100),
+            easing: 'ease-out'
+          });
+        }
+
         // Atualizar cores dos nós
         cy.nodes().forEach((node) => {
           const nodeId = node.id();
           if (nodeId === step.current) {
             node.style('background-color', '#2ecc71'); // Verde - atual
-            node.style('width', '50px');
-            node.style('height', '50px');
+            node.style('width', '12px');
+            node.style('height', '12px');
+            node.style('font-size', '10px'); // Destaca o nome da cidade atual
+            node.style('z-index', 50);
           } else if (step.visited.includes(nodeId)) {
             node.style('background-color', '#f39c12'); // Laranja - visitado
-            node.style('width', '45px');
-            node.style('height', '45px');
+            node.style('width', '8px');
+            node.style('height', '8px');
+            node.style('font-size', '6px');
+            node.style('z-index', 10);
           } else {
             const state = node.data('state');
             node.style('background-color', stateColors[state] || '#c5d9f1');
-            node.style('width', '40px');
-            node.style('height', '40px');
+            node.style('width', '6px');
+            node.style('height', '6px');
+            node.style('font-size', '6px');
+            node.style('z-index', 1);
           }
         });
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import math
+import random
 from collections import deque
 from typing import Iterator, Optional
 
@@ -292,9 +293,10 @@ def load_cities_from_csv(filename: str) -> Graph:
             lat = float(row['latitude'])
             lon = float(row['longitude'])
             state = row.get('estado', '')  # Get state if available
+            
             graph.add_city(city, lat, lon, state)
     
-    graph.build_neighbors(max_distance=300)  # Connect cities within 300 km
+    graph.build_neighbors(max_distance=120)  # Connect cities within 120 km
     return graph
 
 

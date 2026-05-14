@@ -5,7 +5,7 @@ echo ========================================
 echo.
 
 echo [1/3] Starting Python Backend...
-start "Backend-API" cmd /k "C:/Users/joaom/AppData/Local/Python/pythoncore-3.14-64/python.exe api.py"
+start "Backend-API" cmd /k "cd IA && python api.py"
 timeout /t 3 /nobreak
 
 echo [2/3] Installing Frontend Dependencies...
