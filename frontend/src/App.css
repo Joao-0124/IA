@@ -231,3 +231,99 @@ body {
     max-height: 200px;
   }
 }
+
+/* TABS STYLING */
+.mode-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.mode-tab {
+  flex: 1;
+  padding: 8px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #666;
+}
+
+.mode-tab:hover {
+  background: #f0f0f0;
+}
+
+.mode-tab.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+/* GENETIC THEME (Hacker/Matrix style) */
+.theme-genetic {
+  background-color: #050505;
+}
+.theme-genetic .app-header {
+  background: #050505;
+  color: #00ff00;
+  border-bottom: 2px solid #00ff00;
+  box-shadow: 0 4px 15px rgba(0, 255, 0, 0.1);
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+.theme-genetic .control-panel {
+  background: #111;
+  border: 1px solid #333;
+  color: #00ff00;
+}
+.theme-genetic .control-panel h2, 
+.theme-genetic .form-group label {
+  color: #00ff00;
+}
+.theme-genetic .form-group select, 
+.theme-genetic .form-group input {
+  background: #000;
+  color: #00ff00;
+  border-color: #333;
+}
+.theme-genetic .mode-tab {
+  background: #000;
+  color: #444;
+  border-color: #333;
+}
+.theme-genetic .mode-tab.active {
+  background: #003300;
+  color: #00ff00;
+  border-color: #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+.theme-genetic .play-button {
+  background: #003300;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+}
+.theme-genetic .play-button:hover:not(:disabled) {
+  background: #005500;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+}
+.theme-genetic .result-section {
+  background: #000;
+  border-color: #00ff00;
+}
+.theme-genetic .result-section h3, 
+.theme-genetic .path-info, 
+.theme-genetic .visited-item,
+.theme-genetic .path-list {
+  color: #00ff00;
+  background-color: transparent;
+}
+.theme-genetic .graph-section {
+  background: #000;
+  border: 1px solid #00ff00;
+  box-shadow: inset 0 0 50px rgba(0, 255, 0, 0.05);
+}
+.theme-genetic .speed-value {
+  color: #00ff00;
+}

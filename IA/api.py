@@ -114,25 +114,58 @@ def search(request: SearchRequest):
     if request.target not in graph.cities:
         raise HTTPException(status_code=400, detail=f"Target city '{request.target}' not found")
     
-    if request.method not in {"bfs", "dfs"}:
-        raise HTTPException(status_code=400, detail="Method must be 'bfs' or 'dfs'")
+    if request.method not in {"bfs", "dfs", "genetic"}:
+        raise HTTPException(status_code=400, detail="Method must be 'bfs', 'dfs' or 'genetic'")
     
     # Execute search
     if request.method == "bfs":
         result = graph.bfs(request.start, request.target)
         steps_gen = graph.bfs_steps(request.start, request.target)
-    else:
+        
+        steps = []
+        for step in steps_gen:
+            steps.append({
+                "current": step["current"],
+                "visited": list(step["visited"]),
+                "found": step["found"]
+            })
+            
+    elif request.method == "dfs":
         result = graph.dfs(request.start, request.target)
         steps_gen = graph.dfs_steps(request.start, request.target)
-    
-    # Convert steps generator to list
-    steps = []
-    for step in steps_gen:
-        steps.append({
-            "current": step["current"],
-            "visited": list(step["visited"]),
-            "found": step["found"]
-        })
+        
+        steps = []
+        for step in steps_gen:
+            steps.append({
+                "current": step["current"],
+                "visited": list(step["visited"]),
+                "found": step["found"]
+            })
+            
+    elif request.method == "genetic":
+        # Correção: Roda apenas uma vez para não gerar resultados aleatórios diferentes
+        raw_steps = list(graph.genetic_search_steps(request.start, request.target))
+        steps = []
+        for step in raw_steps:
+            steps.append({
+                "current": step["current"],
+                "visited": list(step["visited"]),
+                "found": step["found"],
+                "generation": step.get("generation"),
+                "best_path": step.get("best_path"),
+                "best_fitness": step.get("best_fitness")
+            })
+            
+        if raw_steps:
+            last = raw_steps[-1]
+            result = {
+                "found": last["found"],
+                "visited": last["best_path"],
+                "path": last["best_path"] if last["found"] else [],
+                "generations": len(raw_steps)
+            }
+        else:
+            result = {"found": False, "visited": [], "path": [], "generations": 0}
     
     return SearchResponse(
         found=result["found"],

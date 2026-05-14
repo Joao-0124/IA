@@ -15,6 +15,7 @@ function App() {
   const [filteredTargetCities, setFilteredTargetCities] = useState([]);
   const [startCity, setStartCity] = useState('');
   const [targetCity, setTargetCity] = useState('');
+  const [searchMode, setSearchMode] = useState('traditional');
   const [method, setMethod] = useState('bfs');
   const [graphData, setGraphData] = useState(null);
   const [animationSteps, setAnimationSteps] = useState([]);
@@ -97,9 +98,10 @@ function App() {
       setIsAnimating(true);
 
       // Auto-stop animation after it finishes
+      // Adicionado + 3500ms para dar tempo do rastro terminar de crescer e o usuário apreciar o resultado!
       setTimeout(() => {
         setIsAnimating(false);
-      }, data.steps.length * animationSpeed + 1000);
+      }, data.steps.length * animationSpeed + 3500);
     } catch (err) {
       setError('Erro na busca: ' + (err.response?.data?.detail || err.message));
       console.error(err);
@@ -108,19 +110,34 @@ function App() {
     }
   };
 
-  const methodName = method === 'bfs' ? 'Largura' : 'Profundidade';
+  const methodName = method === 'bfs' ? 'Largura' : method === 'dfs' ? 'Profundidade' : 'Genética';
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${searchMode === 'genetic' ? 'theme-genetic' : ''}`}>
       <header className="app-header">
-        <h1>🗺️ Busca em Grafo - Centro-Oeste Brasileiro</h1>
-        <p>Visualização Interativa de BFS e DFS com 468 Cidades</p>
+        <h1>{searchMode === 'genetic' ? '🧬 Busca Genética Binária' : '🗺️ Busca em Grafo - Centro-Oeste Brasileiro'}</h1>
+        <p>{searchMode === 'genetic' ? 'Evolução Cega - Simulador de Gerações' : 'Visualização Interativa de BFS e DFS com 468 Cidades'}</p>
       </header>
 
       <div className="app-content">
         <aside className="control-panel">
           <div className="control-section">
-            <h2>Controles de Busca</h2>
+            <div className="mode-tabs">
+              <button 
+                className={`mode-tab ${searchMode === 'traditional' ? 'active' : ''}`}
+                onClick={() => { setSearchMode('traditional'); setMethod('bfs'); }}
+                disabled={isAnimating}
+              >
+                Largura/Profundidade
+              </button>
+              <button 
+                className={`mode-tab ${searchMode === 'genetic' ? 'active' : ''}`}
+                onClick={() => { setSearchMode('genetic'); setMethod('genetic'); }}
+                disabled={isAnimating}
+              >
+                Busca Genética Binária
+              </button>
+            </div>
 
             {/* Origin State and City */}
             <div className="form-group">
@@ -192,19 +209,21 @@ function App() {
               </select>
             </div>
 
-            {/* Search Method */}
-            <div className="form-group">
-              <label htmlFor="method">Tipo de Busca:</label>
-              <select
-                id="method"
-                value={method}
-                onChange={e => setMethod(e.target.value)}
-                disabled={isAnimating}
-              >
-                <option value="bfs">Busca em Largura (BFS)</option>
-                <option value="dfs">Busca em Profundidade (DFS)</option>
-              </select>
-            </div>
+            {/* Search Method (only visible in traditional mode) */}
+            {searchMode === 'traditional' && (
+              <div className="form-group">
+                <label htmlFor="method">Tipo de Busca:</label>
+                <select
+                  id="method"
+                  value={method}
+                  onChange={e => setMethod(e.target.value)}
+                  disabled={isAnimating}
+                >
+                  <option value="bfs">Busca em Largura (BFS)</option>
+                  <option value="dfs">Busca em Profundidade (DFS)</option>
+                </select>
+              </div>
+            )}
 
             {/* Animation Speed */}
             <div className="form-group">
@@ -236,25 +255,34 @@ function App() {
             {/* Results Section */}
             {result && (
               <div className="result-section">
-                <h3>Resultado</h3>
+                <h3>Resultado ({methodName})</h3>
                 {result.found ? (
                   <>
                     <p className="success">✓ {result.target} foi encontrado!</p>
                     <div className="path-info">
-                      <p>
-                        <strong>Total visitadas:</strong> {result.visited.length}
-                      </p>
-                      <p>
-                        <strong>Cidades visitadas:</strong>
-                      </p>
-                      <div className="visited-list">
-                        {result.visited.map((city, idx) => (
-                          <span key={idx} className="visited-item">
-                            {city}
-                            {idx < result.visited.length - 1 && ', '}
-                          </span>
-                        ))}
-                      </div>
+                      {searchMode === 'genetic' ? (
+                        <>
+                          <p><strong>Gerações Evoluídas:</strong> {result.generations}</p>
+                          <p><strong>Cromossomo final válido:</strong> Sim</p>
+                        </>
+                      ) : (
+                        <p><strong>Total visitadas:</strong> {result.visited.length}</p>
+                      )}
+                      
+                      {searchMode === 'traditional' && (
+                        <>
+                          <p><strong>Cidades visitadas:</strong></p>
+                          <div className="visited-list">
+                            {result.visited.map((city, idx) => (
+                              <span key={idx} className="visited-item">
+                                {city}
+                                {idx < result.visited.length - 1 && ', '}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      
                       <p style={{ marginTop: '10px' }}>
                         <strong>Caminho (solução):</strong>
                       </p>
@@ -269,7 +297,7 @@ function App() {
                     </div>
                   </>
                 ) : (
-                  <p className="error">✗ Cidade não encontrada no grafo</p>
+                  <p className="error">✗ Cidade não alcançada (limite de {searchMode === 'genetic' ? 'mutações' : 'buscas'} esgotado)</p>
                 )}
               </div>
             )}
@@ -278,12 +306,13 @@ function App() {
 
         <main className="graph-section">
           {graphData ? (
-            <GraphVisualizer
-              graphData={graphData}
-              animationSteps={animationSteps}
-              isAnimating={isAnimating}
-              animationSpeed={animationSpeed}
-            />
+              <GraphVisualizer
+                graphData={graphData}
+                animationSteps={animationSteps}
+                isAnimating={isAnimating}
+                animationSpeed={animationSpeed}
+                searchMode={searchMode}
+              />
           ) : (
             <div className="loading">Carregando grafo com 468 cidades...</div>
           )}

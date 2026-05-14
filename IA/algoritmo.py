@@ -183,6 +183,151 @@ class Graph:
                         parent[neighbor] = node
                         stack.append(neighbor)
 
+    def _decode_chromosome(self, start: str, target: str, chromosome: list[int]) -> list[str]:
+        """Decode a binary chromosome into a path."""
+        path = [start]
+        current = start
+        
+        # Lemos em blocos de 3 bits (valores de 0 a 7) para decidir o próximo vizinho
+        for i in range(0, len(chromosome), 3):
+            if current == target:
+                break
+                
+            chunk = chromosome[i:i+3]
+            if len(chunk) < 3:
+                break
+                
+            # Converte binário para inteiro (0-7)
+            val = (chunk[0] << 2) | (chunk[1] << 1) | chunk[2]
+            
+            neighbors = self.adj_list.get(current, [])
+            if not neighbors:
+                break
+                
+            # Evita voltar imediatamente para a cidade anterior (loop bobo) se houver outras opções
+            valid_neighbors = neighbors
+            if len(path) > 1 and len(neighbors) > 1:
+                valid_neighbors = [n for n in neighbors if n != path[-2]]
+                
+            if not valid_neighbors:
+                valid_neighbors = neighbors # fallback
+                
+            next_node = valid_neighbors[val % len(valid_neighbors)]
+            path.append(next_node)
+            current = next_node
+            
+        return path
+
+    def _fitness(self, path: list[str], target: str) -> float:
+        """Calculate fitness of a path. Maior é melhor."""
+        # Penaliza caminhos que ficam dando voltas na mesma cidade
+        unique_nodes = len(set(path))
+        penalty = len(path) - unique_nodes
+        
+        last_node = path[-1]
+        if last_node == target:
+            # Recompensa caminhos curtos que acham o destino, e pune ciclos duramente
+            return 10000.0 + (100.0 / len(path)) - (penalty * 50)
+            
+        # Punição por distância
+        lat1, lon1 = self.cities[last_node]
+        lat2, lon2 = self.cities[target]
+        dist = self.haversine_distance(lat1, lon1, lat2, lon2)
+        
+        # O penalty aqui diminui a chance de o indivíduo "loopador" ser selecionado
+        return 1000.0 / (1.0 + dist + (penalty * 20))
+
+    def genetic_search_steps(self, start: str, target: str, pop_size: int = 100, generations: int = 50, max_steps: int = 50) -> Iterator[dict]:
+        """Busca Genética Binária que gera frames para animação a cada geração."""
+        chromosome_length = max_steps * 3
+        
+        population = []
+        for _ in range(pop_size):
+            population.append([random.randint(0, 1) for _ in range(chromosome_length)])
+            
+        best_overall_fitness = -1.0
+        best_overall_path = []
+        found = False
+        stagnant_gens = 0
+        last_best_fitness = -1.0
+        
+        for gen in range(generations):
+            pop_fitness = []
+            for chromo in population:
+                path = self._decode_chromosome(start, target, chromo)
+                fit = self._fitness(path, target)
+                pop_fitness.append((fit, chromo, path))
+                
+                if fit > best_overall_fitness:
+                    best_overall_fitness = fit
+                    best_overall_path = path
+                    
+            # Checa se o melhor caminho global alcançou o alvo
+            if best_overall_path and best_overall_path[-1] == target:
+                found = True
+                
+            # Verifica estagnação (se parou de melhorar)
+            if best_overall_fitness > last_best_fitness:
+                last_best_fitness = best_overall_fitness
+                stagnant_gens = 0
+            else:
+                stagnant_gens += 1
+            
+            # Envia a geração para a animação (Sempre envia o MELHOR GLOBAL, não a mutação falha)
+            yield {
+                "generation": gen + 1,
+                "best_path": best_overall_path,
+                "best_fitness": round(best_overall_fitness, 2),
+                "found": found,
+                "current": best_overall_path[-1],
+                "visited": set(best_overall_path)
+            }
+            
+            # Se já achou o destino e não conseguiu melhorar por 5 gerações, assume que chegou no ótimo
+            if found and stagnant_gens >= 5:
+                break
+                
+            # Seleção, Cruzamento e Mutação
+            new_population = []
+            
+            # Elitismo: mantém os 2 melhores da geração anterior
+            new_population.append(pop_fitness[0][1][:])
+            new_population.append(pop_fitness[1][1][:])
+            
+            while len(new_population) < pop_size:
+                # Torneio: pega pais do top 20
+                parent1 = random.choice(pop_fitness[:20])[1]
+                parent2 = random.choice(pop_fitness[:20])[1]
+                
+                # Crossover
+                crossover_pt = random.randint(1, chromosome_length - 1)
+                child1 = parent1[:crossover_pt] + parent2[crossover_pt:]
+                child2 = parent2[:crossover_pt] + parent1[crossover_pt:]
+                
+                # Mutação (3%)
+                for child in (child1, child2):
+                    for i in range(chromosome_length):
+                        if random.random() < 0.03:
+                            child[i] = 1 - child[i]
+                            
+                new_population.extend([child1, child2])
+                
+            population = new_population[:pop_size]
+
+    def genetic_search(self, start: str, target: str) -> dict:
+        """Executa a busca genética e retorna o resultado final."""
+        steps = list(self.genetic_search_steps(start, target))
+        if not steps:
+             return {"found": False, "visited": [], "path": []}
+             
+        last_step = steps[-1]
+        return {
+            "found": last_step["found"],
+            "visited": last_step["best_path"],
+            "path": last_step["best_path"] if last_step["found"] else [],
+            "generations": len(steps)
+        }
+
     def visualize(self, *,
                   method: str = "bfs",
                   start: str,
